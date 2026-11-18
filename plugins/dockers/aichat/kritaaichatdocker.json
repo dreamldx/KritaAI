@@ -1,0 +1,9 @@
+{
+    "Id": "Krita AI Chat Docker plugin",
+    "Type": "Service",
+    "X-KDE-Library": "kritaaichatdocker",
+    "X-KDE-ServiceTypes": [
+        "Krita/Dock"
+    ],
+    "X-Krita-Version": "28"
+}

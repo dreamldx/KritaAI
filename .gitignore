@@ -1,0 +1,54 @@
+# Build output
+build/
+_build/
+_install/
+cmake-build-*/
+out/
+CMakeCache.txt
+CMakeFiles/
+CMakeUserPresets.json
+*.o
+*.obj
+*.a
+*.lib
+*.dll
+*.exe
+*.so
+*.dylib
+*_autogen/
+moc_*.cpp
+*.moc
+
+# Test output
+JUnitTestResults.xml
+Testing/
+LastTest.log
+
+# IDE and editor files
+.vs/
+.vscode/
+.idea/
+*.user
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Local data of the plugin: chat history, logs, settings. Never commit these.
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+aichat.log
+*.log
+kritarc
+
+# Secrets
+.env
+.env.*
+apiKey.txt
+*.key
+*.pem
+secrets*
+
+# Claude Code local files
+.claude/
