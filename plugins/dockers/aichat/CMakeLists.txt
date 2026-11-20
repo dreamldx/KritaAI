@@ -2,31 +2,40 @@ add_subdirectory(tests)
 
 # All the logic lives in a static library, so the tests can link it.
 set(kritaaichatdocker_static_SOURCES
-    AiChatAgent.h
-    AiChatAgent.cpp
-    AiChatClient.h
-    AiChatClient.cpp
-    AiChatConfig.h
-    AiChatConfig.cpp
-    AiChatDock.h
-    AiChatDock.cpp
-    AiChatDocumentTools.h
-    AiChatDocumentTools.cpp
-    AiChatLog.h
-    AiChatLog.cpp
-    AiChatPreferences.h
-    AiChatPreferences.cpp
-    AiChatStore.h
-    AiChatStore.cpp
-    AiChatStream.h
-    AiChatStream.cpp
-    AiChatTools.h
-    AiChatTools.cpp
-    AiChatTypes.h
-    AiChatVision.h
-    AiChatVision.cpp
-    AiChatWorker.h
-    AiChatWorker.cpp
+    ai/Agent.h
+    ai/Agent.cpp
+    network/Client.h
+    network/Client.cpp
+    config/Config.h
+    config/Config.cpp
+    ui/Dock.h
+    ui/Dock.cpp
+    ai/tools/DocumentTools.h
+    ai/tools/DocumentTools.cpp
+    ai/tools/Fal.h
+    ai/tools/Fal.cpp
+    ai/tools/FalTools.h
+    ai/tools/FalTools.cpp
+    ai/tools/LayerOps.h
+    ai/tools/LayerOps.cpp
+    ai/tools/LayerTools.h
+    ai/tools/LayerTools.cpp
+    utils/Log.h
+    utils/Log.cpp
+    ui/Progress.h
+    ui/Progress.cpp
+    ui/Preferences.h
+    ui/Preferences.cpp
+    utils/Store.h
+    utils/Store.cpp
+    network/Stream.h
+    network/Stream.cpp
+    ai/tools/Tools.h
+    ai/tools/Tools.cpp
+    ai/tools/Vision.h
+    ai/tools/Vision.cpp
+    utils/Worker.h
+    utils/Worker.cpp
 )
 
 kis_add_library(kritaaichatdocker_static STATIC ${kritaaichatdocker_static_SOURCES})

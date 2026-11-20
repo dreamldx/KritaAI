@@ -62,6 +62,8 @@ public:
 
     QUrl chatUrl() const { return QUrl(QString("http://127.0.0.1:%1/v1/chat/completions").arg(m_server.serverPort())); }
 
+    QUrl baseUrl() const { return QUrl(QString("http://127.0.0.1:%1").arg(m_server.serverPort())); }
+
     void enqueue(const ScriptedResponse &response) { m_script.append(response); }
 
     QList<RecordedRequest> requests;

@@ -11,8 +11,8 @@
 #include <KoDockRegistry.h>
 #include <kis_preference_set_registry.h>
 
-#include "AiChatDock.h"
-#include "AiChatPreferences.h"
+#include "ui/Dock.h"
+#include "ui/Preferences.h"
 
 K_PLUGIN_FACTORY_WITH_JSON(AiChatPluginFactory, "kritaaichatdocker.json", registerPlugin<AiChatPlugin>();)
 
@@ -26,9 +26,7 @@ public:
 
     QDockWidget *createDockWidget() override
     {
-        AiChatDock *dockWidget = new AiChatDock();
-        dockWidget->setObjectName(id());
-        return dockWidget;
+        return new AiChat::Dock(); // Krita sets the object name from id()
     }
 
     DockPosition defaultDockPosition() const override
@@ -43,7 +41,7 @@ AiChatPlugin::AiChatPlugin(QObject *parent, const QVariantList &)
     KoDockRegistry::instance()->add(new AiChatDockFactory());
 
     // the "AI Chat" page of Configure Krita
-    KisPreferenceSetRegistry::instance()->add("AiChatPreferencesFactory", new AiChatPreferencesFactory());
+    KisPreferenceSetRegistry::instance()->add("AiChatPreferencesFactory", new AiChat::PreferencesFactory());
 }
 
 AiChatPlugin::~AiChatPlugin()
