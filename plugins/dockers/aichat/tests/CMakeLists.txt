@@ -1,4 +1,5 @@
 kis_add_tests(
+    ChatTest.cpp
     DockTest.cpp
     FalTest.cpp
     LayerOpsTest.cpp

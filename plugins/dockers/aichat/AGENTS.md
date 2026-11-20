@@ -25,7 +25,15 @@ aichat/
 ├── network/             the chat request
 │   ├── Client.*         Client, ClientResult, RequestSettings: POST /chat/completions, SSE streaming
 │   └── Stream.*         ToolCall, SseParser, CompletionAccumulator, httpErrorMessage
-├── ui/                  Dock (chat panel), Preferences (settings page), Progress (modal window of the Topaz tools)
+├── model/               the state of the chat, no widgets
+│   ├── Chat.*           Chat: history loaded / busy / thinking effort / text so far, send, stop, newChat; owns the
+│   │                    worker thread, the Worker and the tools
+│   └── Request.*        ReasoningEffort, makeRequestSettings(Config, effort) -> RequestSettings
+├── ui/                  the views
+│   ├── Dock.*           the chat panel: shows a Chat, sends the user's input to it
+│   ├── MessageWidget.h  the message card and the round buttons (moved out of Dock.cpp; definitions still in the header)
+│   ├── Preferences.*    the settings page
+│   └── Progress.*       modal window of the Topaz tools
 ├── utils/               Log (writeLog), Store (SQLite history + StoredMessage), Worker (worker-thread object)
 └── tests/               one test program per module; FakeOpenAiServer.h is a scripted fake server
 ```
@@ -39,12 +47,21 @@ Conventions:
   `network/Client.h` includes `ai/tools/Fal.h` and `Vision.h` (network depends on ai/tools; a
   known wart).
 - No file or class has a prefix (only `AiChat.*`, the plugin entry, keeps its name).
+- **Model and view are separate** (like `model/` and `ui/` in krita-ai-diffusion). `Chat` (model) has no widget:
+  it holds the state, offers the actions (`send`, `stop`, `newChat`, `setReasoningEffort`) and reports with
+  signals. `Dock` (view) only draws that state and passes the input on. There is no separate controller class
+  (the Qt widgets are view and controller in one), and the messages are not shown through a
+  `QAbstractListModel`: the cards hold markdown, selectable text and streaming updates, which a delegate
+  would make expensive. New state of the conversation (for example "waiting for the user to confirm a paid
+  tool") goes into `Chat`, not into `Dock`.
+- Known warts of the split: `Chat` takes the `Progress` window (a view) so that it can wire the Topaz tools, and
+  includes `ui/Progress.h` for that; `MessageWidget.h` still has its definitions in the header.
 
 ## 2. Threading model (the most important part)
 
-- **GUI thread**: `Dock`, `Progress`, and every access to a Krita document.
-- **Worker thread** (`Worker` lives in a QThread): all network and database work, including the agent loop and
-  the execution of tools.
+- **GUI thread**: `Dock`, `Chat` (the model), `Progress`, and every access to a Krita document.
+- **Worker thread** (`Worker` lives in a QThread that `Chat` owns): all network and database work, including the
+  agent loop and the execution of tools. `Chat` reaches it only through queued calls and signals.
 - Tools run in the worker thread and **must not touch the Krita document directly**. They go through
   `GuiExecutor::run(fn, &error)`, which runs the function in the GUI thread and waits for it.
   - Do not use `BlockingQueuedConnection`: it deadlocks when the dock is destroyed. The executor has `close()`;
@@ -58,8 +75,8 @@ Conventions:
 
 ## 3. Agent loop and tools
 
-1. The user sends a message -> `Worker::submit` -> `Agent` asks the model with the message history and the tool
-   definitions.
+1. The user sends a message -> `Dock` -> `Chat::send` (reads the settings, `makeRequestSettings`) ->
+   `Worker::submit` -> `Agent` asks the model with the message history and the tool definitions.
 2. The model answers with `tool_calls` -> `ToolRegistry::runTool` runs them one after the other -> the results
    go back as `tool` messages -> ask again, until the model gives a final answer.
 3. On cancel or failure the partial answer is saved; error cards are not stored; tool calls are not stored in the
@@ -146,7 +163,7 @@ without a fal key the Topaz tools are not offered.
 
 - **Namespace + metatypes**: `Q_DECLARE_METATYPE` has to be at global scope and name `AiChat::X`. Queued calls
   by string (`invokeMethod("submit", Q_ARG(RequestSettings, ...))`) look the type up by its **short name**, so
-  also register `qRegisterMetaType<T>("T")` (see `Client`, `Worker`, `Dock`). Do the same for every new type
+  also register `qRegisterMetaType<T>("T")` (see `Client`, `Worker`, `Chat`). Do the same for every new type
   that crosses threads, otherwise Qt reports "unregistered datatype".
 - `QT_USE_QSTRINGBUILDER` is on: the result of a string concatenation cannot be assigned to a `QJsonValue`
   directly; wrap it in `QString(...)`.
@@ -169,8 +186,9 @@ without a fal key the Topaz tools are not offered.
   - `cd work\krita\_build; ninja; ctest -R aichat --output-on-failure`.
 - The `No module named 'PyQt5'/'sipbuild'` that CMake prints when it reconfigures is an unrelated old problem and
   does not stop the build.
-- Tests (8 programs): `DockTest`, `PreferencesTest`, `StoreTest`, `StreamTest`, `WorkerTest`, `ToolsTest`,
-  `FalTest`, `LayerOpsTest`. Tests that touch settings must call
+- Tests (9 programs): `ChatTest` (the model, no widgets), `DockTest` (the panel), `PreferencesTest`,
+  `StoreTest`, `StreamTest`, `WorkerTest`, `ToolsTest`, `FalTest`, `LayerOpsTest`. Test the logic of the
+  conversation in `ChatTest`, only what is drawn in `DockTest`. Tests that touch settings must call
   `QStandardPaths::setTestModeEnabled(true)` so the real kritarc is never written.
 - All network tests use `FakeOpenAiServer` (scripted responses); nothing talks to a real service.
 

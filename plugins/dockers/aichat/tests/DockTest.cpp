@@ -590,11 +590,11 @@ private Q_SLOTS:
             }
             QVERIFY(effortButton);
             for (QAction *action : effortButton->menu()->actions()) {
-                if (action->data().isValid() && action->data().toInt() == Dock::High) {
+                if (action->data().isValid() && action->data().toInt() == static_cast<int>(ReasoningEffort::High)) {
                     action->trigger();
                 }
             }
-            QCOMPARE(dock->reasoningEffort(), Dock::High);
+            QVERIFY(dock->reasoningEffort() == ReasoningEffort::High);
 
             QAbstractButton *send = buttonByToolTip(*dock, "Send (Enter)");
             type(*dock, "think hard");

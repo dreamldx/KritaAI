@@ -9,6 +9,7 @@
 #include <QList>
 #include <QString>
 
+#include "../model/Request.h"
 #include "../utils/Store.h"
 
 class QAbstractButton;
@@ -16,20 +17,15 @@ class QFrame;
 class QLabel;
 class QPlainTextEdit;
 class QScrollArea;
-class QThread;
 class QToolButton;
 class QVBoxLayout;
 class QWidget;
 
 namespace AiChat {
 
+class Chat;
 class DocumentAccess;
-class GuiExecutor;
-class ToolRegistry;
-class VisionClient;
-class FalClient;
 class Progress;
-class Worker;
 
 /**
  * A docker with a scrolling chat history on top and, at the bottom, a box
@@ -46,24 +42,18 @@ class Worker;
  * answers, the send button is a "stop" button and the answer appears piece
  * by piece.
  *
- * The AI service is reached through an Worker that runs in a thread of
- * its own: the panel never waits for the network or the disk. The service
- * address, the key and the model are read from the settings (Configure Krita
- * > AI Chat) each time a message is sent. The chat history is kept in a
- * SQLite database; the panel shows the latest conversation again when Krita
- * is restarted.
+ * The panel only shows the conversation. Its state, the worker thread
+ * (so the panel never waits for the network or the disk) and the tools of
+ * the AI belong to a `Chat` (model/Chat.h). The service address, the key
+ * and the model are read from the settings (Configure Krita > AI Chat)
+ * each time a message is sent. The chat history is kept in a SQLite
+ * database; the panel shows the latest conversation again when Krita is
+ * restarted.
  */
 class Dock : public QDockWidget
 {
     Q_OBJECT
 public:
-    /// How much the model should think before answering.
-    enum ReasoningEffort {
-        Low,
-        Medium,
-        High,
-    };
-
     /// @param databasePath where the chat history is kept; empty: the default place in Krita's user data folder
     explicit Dock(const QString &databasePath = QString());
     ~Dock() override;
@@ -72,7 +62,7 @@ public:
     void setReasoningEffort(ReasoningEffort effort);
 
     /// True while the AI is answering.
-    bool isBusy() const { return m_busy; }
+    bool isBusy() const;
 
     /// Append a message written by the user to the history (only shows it, does not send it).
     void addUserMessage(const QString &text);
@@ -97,7 +87,7 @@ Q_SIGNALS:
     /// Emitted when the user clicks the "Add image" button.
     void addImageRequested();
 
-    void reasoningEffortChanged(Dock::ReasoningEffort effort);
+    void reasoningEffortChanged(AiChat::ReasoningEffort effort);
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -109,20 +99,19 @@ private Q_SLOTS:
     void slotNewChat();
     void slotInputChanged();
 
-    // answers of the worker
-    void slotConversationLoaded(const QList<StoredMessage> &messages);
-    void slotAssistantDelta(const QString &delta);
+    // what the model reports
+    void slotHistoryLoaded(const QList<StoredMessage> &messages);
+    void slotAssistantDelta(const QString &delta, const QString &textSoFar);
     void slotAssistantFinished(const StoredMessage &message);
     void slotRequestFailed(const QString &error);
     void slotRequestCanceled();
     void slotBusyChanged(bool busy);
-    void slotStorageError(const QString &error);
 
 private:
     void updateComposerStyle();
     void updateInputHeight();
     void updateSendButton();
-    void setBusy(bool busy);
+    void updateEffortButton(ReasoningEffort effort);
 
     void appendMessageWidget(QWidget *messageWidget);
     void addStoredMessage(const StoredMessage &message);
@@ -148,26 +137,14 @@ private:
     QAbstractButton *m_addImageButton {nullptr};
     QToolButton *m_effortButton {nullptr};
     QAbstractButton *m_sendButton {nullptr};
-    ReasoningEffort m_effort {Medium};
 
-    // the worker and its thread
-    QThread *m_thread {nullptr};
-    Worker *m_worker {nullptr};
+    // the model, and what the tools of the AI need from the GUI thread
+    Chat *m_chat {nullptr};
+    DocumentAccess *m_documentAccess {nullptr}; // owned; the tools reach Krita's document through it
+    Progress *m_progress {nullptr}; // the modal window of the slow tools; a child of the panel
 
-    // the tools of the AI: they run in the worker thread and reach Krita through the executor
-    GuiExecutor *m_executor {nullptr};
-    DocumentAccess *m_documentAccess {nullptr};
-    VisionClient *m_vision {nullptr};
-    FalClient *m_fal {nullptr}; // used by the worker thread only
-    Progress *m_progress {nullptr}; // the modal window of the slow tools; lives in the GUI thread
-    ToolRegistry *m_tools {nullptr};
-    bool m_ready {false}; ///< the history was loaded, messages can be sent
-    bool m_busy {false};
-    bool m_storageWarned {false};
-
-    // the answer that is being received
+    // the card of the answer that is being received
     QWidget *m_streamingMessage {nullptr};
-    QString m_streamingText;
 
     bool m_followBottom {true};
     int m_messageCount {0};

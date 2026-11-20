@@ -8,8 +8,13 @@ set(kritaaichatdocker_static_SOURCES
     network/Client.cpp
     config/Config.h
     config/Config.cpp
+    model/Chat.h
+    model/Chat.cpp
+    model/Request.h
+    model/Request.cpp
     ui/Dock.h
     ui/Dock.cpp
+    ui/MessageWidget.h
     ai/tools/DocumentTools.h
     ai/tools/DocumentTools.cpp
     ai/tools/Fal.h
